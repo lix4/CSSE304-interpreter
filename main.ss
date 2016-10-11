@@ -3,9 +3,6 @@
 ;                  
 ; Claude Anderson.  Last modified April, 2014
 
-;Assignment13
-;Xiwen Li, Xingchen Jiang
-
 (load "chez-init.ss") 
 
 (define load-all ; make it easy to reload the files
