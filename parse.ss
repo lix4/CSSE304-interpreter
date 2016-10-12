@@ -5,9 +5,10 @@
 ; Procedures to make the parser a little bit saner.
 (define-datatype expression expression?
 	[var-exp (id symbol?)]
-	[lambda-list-vars-exp 
+  [quote-exp (id quote?)]
+	[lambda-exp 
 		(id (list-of symbol?))
-		(body (list-of expression?))
+		(bodies (list-of expression?))
 	]
 	[lambda-improp-exp
 		(id (list-of improperlist?))
@@ -19,13 +20,13 @@
 	]
 	[app-exp
 		(rator expression?)
-		(rand (list-of expression?))
+		(rands (list-of expression?))
 		]
-	[lit-exp (id any-type?)]
+	[lit-exp (id literal?)]
 	[if-exp 
-		(condition expression?)
-		(true expression?)
-		(false expression?)
+		(test-exp expression?)
+		(then-exp expression?)
+		(else-exp expression?)
 	]
 	[if-no-else-exp
 		(condition expression?)
@@ -35,9 +36,9 @@
 		(id list?)
 		(body (list-of expression?))
 	]
-	[let-exp 
-		(id list?)
-		(body (list-of expression?))
+	[let-exp (vars (list-of symbol?))
+           (val (list-of expression?))
+		       (bodies (list-of expression?))
 	]
 	[let*-exp 
 		(id list?)
@@ -48,23 +49,15 @@
 		(val expression?)
 	])
 
-; (define list-checker
-; 	(lambda (pred)
-; 		(lambda (ls)
-; 			(or (null? ls) (and (pair? ls) (pred (car ls)) ((list-checker pred) (cdr ls)) ))
-; 			)
-; 		)
-; 	)
+
 
 (define improperlist?
   (lambda (x)
     (and (pair? x) (not (list? x)))))
 
-(define any-type?
+(define literal?
 	(lambda (val)
-		(or (symbol? val) (number? val) (vector? val) (boolean? val))
-		)
-	)
+		(or (number? val) (symbol? val) (boolean? val) (string? val))))
 
 (define 1st car)
 (define 2nd cadr)
@@ -74,8 +67,9 @@
 (define parse-exp         
   	(lambda (datum)
     	(cond
-		    [(symbol? datum) (var-exp datum)]
+        [(symbol? datum) (var-exp datum)]
 		    [(literal? datum) (lit-exp datum)]
+        [(quote? datum) (quote-exp datum)]
 		    [(not (list? datum)) (eopl:error 'parse-exp "application ~s is not a proper list" datum)]
 		    [(pair? datum)
       			(cond
@@ -87,7 +81,7 @@
       						[(list? (2nd datum)) 
       						(if (not (andmap symbol? (2nd datum))) 
       							(eopl:error 'parse-exp "lambda argument list: formals must be symbols: ~s" (2nd datum))
-      							(lambda-list-vars-exp (2nd datum) (map parse-exp (cddr datum)))
+      							(lambda-exp (2nd datum) (map parse-exp (cddr datum)))
       						)]
       						[(symbol? (2nd datum)) (lambda-sym-exp (2nd datum) (map parse-exp (cddr datum)))]
       						[(improperlist (2nd datum)) (lambda-improp-exp (2nd datum)) (map parse-exp (cddr datum))]
@@ -108,8 +102,7 @@
       					[(and (not (eqv? (2nd datum) '())) (ormap improperlist? (2nd datum))) (eopl:error 'parse-exp "Error in parse-exp: decls: not all proper lists: ~s" (2nd datum))]
       					[(not (andmap (lambda (ls) (eqv? (length ls) 2)) (2nd datum))) (eopl:error 'parse-exp "decls: not all length 2: ~s" (2nd datum))]
       					[(not (andmap symbol? (map car (2nd datum)))) (eopl:error 'parse-exp "decls: first members must be symbols: ~s" (2nd datum))]
-      					
-      					[else (let-exp (map l-id-process (2nd datum)) (map parse-exp (cddr datum)))]
+      					[else (let-exp (map car (2nd datum)) (map parse-exp (map cadr (2nd datum))) (map parse-exp (cddr datum)))]
       					)]
       				[(eqv? (1st datum) 'let*)
       				(cond
@@ -148,12 +141,22 @@
 )
 
 
-(define literal?
-	(lambda (val)
-		(or (number? val) (boolean? val) (symbol? val) (vector? val) (string? val))))
 
+(define l-id-process-for-unparse
+  (lambda (x) 
+    (list (1st x) (unparse-exp (2nd x)))
+    )
+  )
 
+(define l-id-process
+  (lambda (x) 
+    (list (1st x) (parse-exp (2nd x)))
+    )
+  )
 
+(define quote?
+  (lambda (val)
+    (equal? (car val) 'quote)))
 
 
 
