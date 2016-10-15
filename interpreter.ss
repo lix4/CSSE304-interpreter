@@ -33,8 +33,16 @@
                (if (eval-exp test-exp env)
                    (eval-exp then-exp env)
                    (eval-exp else-exp env))]
+      [if-no-else-exp (test-exp then-exp)
+                      (if (eval-exp test-exp env)
+                          (eval-exp then-exp env))]
       [lambda-exp (vars bodies)
                   (closure vars bodies env)]
+      [lambda-improp-exp (vars bodies)
+                         (closure vars bodies env)]
+      [lambda-sym-exp (vars bodies)
+                      (closure vars bodies env)]
+      ; [cond-exp ]
       [app-exp (rator rands)
         (let ([proc-value (eval-exp rator env)]
               [args (eval-rands rands env)])
@@ -63,17 +71,42 @@
     (cases proc-val proc-value
       [prim-proc (op) (apply-prim-proc op args)]
 			; You will add other cases
-      [closure (vars bodies env) 
-               (let ([new-env (extend-env vars args env)])
-                    (eval-bodies bodies new-env))]
+      [closure (vars bodies env)
+              (cond [(list? vars)
+                     (if (null? vars)
+                         (eval-bodies bodies env)
+                         (let ([new-env (extend-env vars args env)])
+                              (eval-bodies bodies new-env)))]
+                    [(symbol? vars)
+                     (let ([new-env (extend-env (list vars) (list args) env)])
+                          (eval-bodies bodies new-env))]
+                    [else (let* ([vars (improperlist-vars-processor vars)]
+                                 [args (improperlist-args-processor vars args)]
+                                 [new-env (extend-env vars args env)])
+                               (eval-bodies bodies new-env))])]
       [else (error 'apply-proc
                    "Attempt to apply bad procedure: ~s" 
                     proc-value)])))
 
-(define *prim-proc-names* '(+ - * / >= < add1 sub1 zero? list cons = not cons car cdr list null? assq eq? equal? 
+;This procedure converts a improper list into a proper list
+(define improperlist-vars-processor
+  (lambda (vars)
+    (if (not (pair? (cdr vars)))
+        (list (car vars) (cdr vars))
+        (append (list (car vars)) (improperlist-vars-processor (cdr vars))))))
+
+
+(define improperlist-args-processor
+  (lambda (vars args)
+    (if (null? (cdr vars))
+        (list args)
+        (cons (car args) (improperlist-args-processor (cdr vars) (cdr args))))))
+
+
+(define *prim-proc-names* '(+ - * / >= < > add1 sub1 zero? list cons = not cons car cdr list null? assq eq? equal? 
                             atom? length list->vector list? pair? vector->list vector make-vector procedure?
                             vector-ref vector? number? symbol? set-car! set-cdr! vector-set! display newline
-                            quote caar cadr cadar))
+                            quote caar cadr cadar map apply))
 
 (define init-env         ; for now, our initial global environment only contains 
   (extend-env            ; procedure names.  Recall that an environment associates
@@ -95,6 +128,7 @@
       [(*) (apply * args)]
       [(/) (/ (1st args) (2nd args))]
       [(<) (< (1st args) (2nd args))]
+      [(>) (> (1st args) (2nd args))]
       [(add1) (+ (1st args) 1)]
       [(>=) (>= (1st args) (2nd args))]
       [(sub1) (- (1st args) 1)]
@@ -129,6 +163,8 @@
       [(eq?) (eq? (1st args) (2nd args))]
       [(equal?) (equal? (1st args) (2nd args))]
       [(quote) (quote args)]
+      [(map) (map (lambda (x) (apply-proc (1st args) (list x))) (2nd args))]
+      [(apply) (apply-proc (1st args) (2nd args))]
       [(cons) (cons (1st args) (2nd args))]
       [(=) (= (1st args) (2nd args))]
       [else (error 'apply-prim-proc 
@@ -144,8 +180,41 @@
       (eopl:pretty-print answer) (newline)
       (rep))))  ; tail-recursive, so stack doesn't grow.
 
+(define syntax-expand
+  (lambda (exp)
+    (cases expression exp
+      [lit-exp (id) (lit-exp id)]
+      [var-exp (id) (var-exp id)]
+      [app-exp (rator rands)
+               (app-exp (syntax-expand rator) (map syntax-expand rands))]
+      [if-exp (test-exp then-exp else-exp)
+              (if-exp (syntax-expand test-exp) 
+                      (syntax-expand then-exp) 
+                      (syntax-expand else-exp))]
+      [if-no-else-exp (test-exp then-exp)
+                      (if-no-else-exp (syntax-expand test-exp) 
+                                      (syntax-expand then-exp))]
+      [or-exp (bodies) (or-exp (map syntax-expand bodies))]
+      [and-exp (bodies) (and-exp (map syntax-expand bodies))]
+      [cond-exp (cases bodies) (cond-exp (map syntax-expand cases) 
+                                         (map syntax-expand bodies))]
+      [begin-exp (bodies) (begin-exp (map syntax-expand bodies))]
+      ; [let*-exp (vars vals bodies) ()]
+      [quote-exp (datum) (quote-exp datum)]
+      [lambda-exp (vars bodies)
+                  (lambda-exp vars (map syntax-expand bodies))]
+      [lambda-sym-exp (vars bodies)
+                      (lambda-sym-exp vars (map syntax-expand bodies))]
+      [lambda-improp-exp (vals bodies)
+                         (lambda-improp-exp vals (map syntax-expand bodies))]
+      [let-exp (vars vals bodies) (app-exp (lambda-exp (map syntax-expand vars) (map syntax-expand bodies)) (map syntax-expand vals))]
+      )))  
+
 (define eval-one-exp
-  (lambda (x) (top-level-eval (parse-exp x))))
+  (lambda (exp) (eval-exp (syntax-expand (parse-exp exp)) (empty-env))))    
+
+; (define eval-one-exp
+;   (lambda (x) (top-level-eval (parse-exp x))))
 
 
 

@@ -11,7 +11,7 @@
 		(bodies (list-of expression?))
 	]
 	[lambda-improp-exp
-		(id (list-of improperlist?))
+		(id   improperlist?)
 		(body (list-of expression?))
 	]
 	[lambda-sym-exp
@@ -29,25 +29,32 @@
 		(else-exp expression?)
 	]
 	[if-no-else-exp
-		(condition expression?)
-		(true expression?)
+		(test-exp expression?)
+		(then-exp expression?)
 	]
-	[letrec-exp 
-		(id list?)
-		(body (list-of expression?))
-	]
+  [or-exp (bodies (list-of expression?))]
+  [and-exp (bodies (list-of expression?))]
+  [cond-exp (cases (list-of expression?))
+            (bodies (list-of expression?))]
+  [begin-exp (bodies (list-of expression?))]
+
+	; [letrec-exp 
+		; (id list?)
+		; (body (list-of expression?))
+	; ]
 	[let-exp (vars (list-of symbol?))
            (val (list-of expression?))
 		       (bodies (list-of expression?))
 	]
-	[let*-exp 
-		(id list?)
-		(body (list-of expression?))
-	]
-	[set!-exp 
-		(var symbol?)
-		(val expression?)
-	])
+      ; [let*-exp (vars (list-of symbol?))
+      ;           (val (list-of expression?))
+      ;           (bodies (list-of expression?))
+      ; ]
+	; [set!-exp 
+	; 	(var symbol?)
+	; 	(val expression?)
+	; ]
+  )
 
 
 
@@ -84,7 +91,7 @@
       							(lambda-exp (2nd datum) (map parse-exp (cddr datum)))
       						)]
       						[(symbol? (2nd datum)) (lambda-sym-exp (2nd datum) (map parse-exp (cddr datum)))]
-      						[(improperlist (2nd datum)) (lambda-improp-exp (2nd datum)) (map parse-exp (cddr datum))]
+      						[(improperlist? (2nd datum)) (lambda-improp-exp (2nd datum) (map parse-exp (cddr datum)))]
 							)
       					]
       					)]
@@ -112,7 +119,7 @@
       					(cond
       						[(not (andmap (lambda (ls) (eqv? (length ls) 2)) (2nd datum))) (eopl:error 'parse-exp "decls: not all length 2: ~s" (2nd datum))]
       						[(not (andmap symbol? (map car (2nd datum)))) (eopl:error 'parse-exp "decls: first members must be symbols: ~s" (2nd datum))]
-      						[else (let*-exp (map l-id-process (2nd datum)) (map parse-exp (cddr datum)))]
+      						[else (let*-exp (map car (2nd datum)) (map parse-exp (map cadr (2nd datum))) (map parse-exp (cddr datum)))]
       						)
       					]
       					)
@@ -132,6 +139,7 @@
       					[(<= (length datum) 2) (eopl:error 'parse-exp "set! expression ~s does not have (only) variable and expression" datum)]
       					[(> (length datum) 3) (eopl:error 'parse-exp "set! expression ~s is too long" datum)]
       					)]
+              ; []
        				[else (app-exp (parse-exp (1st datum)) (map parse-exp (cdr datum)))]
        				)
       			]

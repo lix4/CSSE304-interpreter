@@ -27,9 +27,14 @@
 (define-datatype proc-val proc-val?
   [prim-proc
    (name symbol?)]
-  [closure (vars (list-of symbol?))
+  [closure (vars (lambda (obj) 
+                         (or ((list-of symbol?) obj)
+                             (symbol? obj)
+                             (pair? obj))))
            (bodies (list-of expression?))
            (env environment?)])
+
+
 	
 ;; environment type definitions
 (define scheme-value?
