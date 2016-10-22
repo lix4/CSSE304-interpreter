@@ -16,11 +16,16 @@
   )
 
 (define-datatype environment environment?
-  (empty-env-record)
-  (extended-env-record
+  [empty-env-record]
+  [extended-env-record
    (syms (list-of symbol?))
    (vals (list-of scheme-value?))
-   (env environment?)))
+   (env environment?)]
+  [recursively-extended-env-record
+   (proc-names (list-of symbol?))
+   (idss (list-of letrec-idss?))
+   (bodiess (list-of (list-of expression?)))
+   (env environment?)])
 	
 ; datatype for procedures.  At first there is only one
 ; kind of procedure, but more kinds will be added later.

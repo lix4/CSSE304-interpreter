@@ -136,6 +136,7 @@
 		     (131072)
 		     (3)
 		     188
+		     #t
 		     )]
           [answers 
             (list 
@@ -183,6 +184,10 @@
              (eval-one-exp '(let ([f (lambda (x) (+ 2 (* 3 x)))])
 	       (f (let ([f (lambda (x) (f (* 5 x)))])
 		    (f 4)))))
+	     (eq? (void) 
+		  (eval-one-exp '(cond [(< 3 3) "this is false"] 
+				       [(< 2 2) "this is false" ])))
+      
 	     )])
       (display-results correct answers equal?)))
 
@@ -301,16 +306,16 @@
 ;#by loading this file (and your solution) and typing (r)
 
 (define (run-all)
-  ; (display 'primitive-procedures) 
-  ; (test-primitive-procedures)
-  ; (display 'lambda-regression-tests) 
-  ; (test-lambda-regression-tests)
-  ; (display 'lambda-with-variable-args) 
-  ; (test-lambda-with-variable-args)
+  (display 'primitive-procedures) 
+  (test-primitive-procedures)
+  (display 'lambda-regression-tests) 
+  (test-lambda-regression-tests)
+  (display 'lambda-with-variable-args) 
+  (test-lambda-with-variable-args)
   (display 'syntactic-expansion) 
   (test-syntactic-expansion)    
-  ; (display 'one-armed-if) 
-  ; (test-one-armed-if)
+  (display 'one-armed-if) 
+  (test-one-armed-if)
 
 )
 
