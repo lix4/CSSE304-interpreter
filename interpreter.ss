@@ -58,6 +58,7 @@
                   (closure vars bodies env)]
       [lambda-improp-exp (vars bodies)
                          (closure vars bodies env)]
+      [case-lambda-exp (expr) (case-closure expr env)]
       [lambda-sym-exp (vars bodies)
                       (closure vars bodies env)]
       [app-exp (rator rands)
@@ -69,6 +70,7 @@
 (define extend-env-recursively
     (lambda (proc-names idss bodiess old-env)
             (recursively-extended-env-record proc-names idss bodiess old-env)))
+
 
 ; evaluate the list of operands, putting results into a list
 
@@ -104,9 +106,38 @@
                                  [args (improperlist-args-processor vars args)]
                                  [new-env (extend-env vars args env)])
                                (eval-bodies bodies new-env))])]
+      ;**change code here!
+      [case-closure (closures env) 
+        (let ([correct-lambda (closures-process closures args)])
+              (if (null? args)
+                  '(())
+                   (apply-proc (closure (cadr correct-lambda) (caddr correct-lambda) env) args)))]
       [else (error 'apply-proc
                    "Attempt to apply bad procedure: ~s" 
                     proc-value)])))
+
+;**change code here
+(define closures-process
+  (lambda (clos args)
+    (cond [(list? (cadr (car clos)))
+           (if (match-args? (length args) (cadr (car clos)))
+               (car clos)
+               (closures-process (cdr clos) args))]
+          [(improperlist? (cadr (car clos))) (car clos)]
+          [(symbol? (cadr (car clos))) (car clos)]
+          [else (closures-process (cdr clos) args)])))
+
+(define improperlist?
+  (lambda (x)
+    (and (pair? x) (not (list? x)))))
+
+;;change code here
+(define match-args?
+  (lambda (n pa-li)
+    (let rec ([count 0] [pa-li pa-li])
+              (if (null? pa-li)
+                  (equal? count n)
+                  (rec (+ count 1) (cdr pa-li))))))
 
 (define eval-while-loop
   (lambda (test-expr bodies env)
@@ -298,6 +329,9 @@
                                            (map syntax-expand vals))]
       [while-exp (test-exp bodies) (while-exp (syntax-expand test-exp) 
                                               (map syntax-expand bodies))]
+      ;**change code here.
+      [case-lambda-exp (exprs)
+                 (case-lambda-exp (map syntax-expand exprs))]
       )))  
 
 

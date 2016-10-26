@@ -37,8 +37,34 @@
                              (symbol? obj)
                              (pair? obj))))
            (bodies (list-of expression?))
-           (env environment?)])
+           (env environment?)]
+  ;**change code here.
+  [case-closure (lambdas (list-of lambdas?))
+                (env environment?)])
 
+;**change code here
+(define lambdas?
+  (lambda (obj)
+    (cases expression obj
+      [lambda-exp (id bodies) #t]
+      [lambda-improp-exp (id bodies) #t]
+      [lambda-sym-exp (id bodies) #t]
+      [var-exp (id) #f]
+      [quote-exp (id) #f]
+      [app-exp (rator rands) #f]
+      [lit-exp (id) #f]
+      [if-exp (test-exp then-exp else-exp) #f]
+      [if-no-else-exp (test-exp then-exp) #f]
+      [or-exp (bodies) #f]
+      [and-exp (bodies) #f]
+      [cond-exp (cases bodies) #f]
+      [while-exp (test-exp bodies) #f]
+      [let-name-exp (name vars vals bodies) #f]
+      [case-lambda-exp (expr) #f]
+      [case-exp (val-expr case-clause bodies) #f]
+      [begin-exp (bodies) #f]
+      [letrec-exp (proc-names idss bodiess letrec-bodies) #f]
+      [let-exp (vars val bodies) #f])))
 
 	
 ;; environment type definitions

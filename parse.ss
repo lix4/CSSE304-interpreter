@@ -11,7 +11,7 @@
 		(bodies (list-of expression?))
 	]
 	[lambda-improp-exp
-		(id   improperlist?)
+		(id improperlist?)
 		(body (list-of expression?))
 	]
 	[lambda-sym-exp
@@ -45,6 +45,8 @@
                 (vals (list-of expression?))
                 (bodies (list-of expression?))
   ]
+  ;**Change the code here
+  [case-lambda-exp (exprs (list-of expression?))]
   [case-exp (val-expr expression?)
             (case-clause (lambda (x) (or (list? x) (eqv? x 'else))))
             (bodies (list-of expression?))]
@@ -173,11 +175,40 @@
               [(eqv? (1st datum) 'case)
                (case-exp (parse-exp (2nd datum)) 
                          (map car (cddr datum))
-                         (map parse-exp (map cadr (cddr datum))))]       
+                         (map parse-exp (map cadr (cddr datum))))]
+               ;**change code here.
+              [(eqv? (1st datum) 'case-lambda)
+               (case-lambda-exp (map lambdas-process (cdr datum)))]       
        				[else (app-exp (parse-exp (1st datum)) (map parse-exp (cdr datum)))]
        				)
       			]
      		[else (eopl:error 'parse-exp "bad expression: ~s" datum)])))
+
+;;change codeh here!
+(define lambdas-process
+    (lambda (x) 
+      (cond [(list? (car x)) (lambda-exp (car x) (map parse-exp (cdr x)))]
+            [(improperlist? (car x)) (lambda-improp-exp (car x) (map parse-exp (cdr x)))]
+            [else (lambda-sym-exp (car x) (map parse-exp (cdr x)))])))
+
+(define unparse-exp
+  (lambda (exp)
+    (cases expression exp
+      [var-exp (datum) datum]
+      [lambda-sym-exp (id body) (append (list 'lambda id) (map unparse-exp body))]
+      [lambda-exp (id body) (append (list 'lambda id) (map unparse-exp body))]
+      [lambda-improp-exp (id body) (list 'lambda id (map unparse-exp body))]
+      [app-exp (rator rand) (cons (unparse-exp rator) (map unparse-exp rand))]
+      [lit-exp (id) id]
+      [if-exp (condition true false) (list 'if (unparse-exp condition) (unparse-exp true) (unparse-exp false))]
+      [if-no-else-exp (condition true) (list 'if (unparse-exp condition) (unparse-exp true))]
+      [letrec-exp (id body) (append (list 'letrec (map l-id-process-for-unparse id)) (map unparse-exp body))]
+      [let-exp (id body) (append (list 'let (map l-id-process-for-unparse id)) (map unparse-exp body))]
+      [let*-exp (id body) (append (list 'let* (map l-id-process-for-unparse id)) (map unparse-exp body))]
+      [set!-exp (var val) (list var (unparse-exp val)) ]
+      )
+    )
+  )
 
 
 
