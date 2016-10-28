@@ -61,6 +61,10 @@
            (val (list-of expression?))
 		       (bodies (list-of expression?))
 	]
+  [set!-exp (var symbol?)
+            (val expression?)]
+  [define-exp (var symbol?)
+              (val expression?)]
   ; [let*-exp (vars (list-of symbol?))
   ;           (val (list-of expression?))
   ;           (bodies (list-of expression?))
@@ -178,7 +182,11 @@
                          (map parse-exp (map cadr (cddr datum))))]
                ;**change code here.
               [(eqv? (1st datum) 'case-lambda)
-               (case-lambda-exp (map lambdas-process (cdr datum)))]       
+               (case-lambda-exp (map lambdas-process (cdr datum)))]
+              [(eqv? (1st datum) 'set!)
+               (set!-exp (2nd datum) (parse-exp (3rd datum)))]
+              [(eqv? (1st datum) 'define)
+               (define-exp (cadr datum) (parse-exp (3rd datum)))]       
        				[else (app-exp (parse-exp (1st datum)) (map parse-exp (cdr datum)))]
        				)
       			]

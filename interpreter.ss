@@ -61,6 +61,17 @@
       [case-lambda-exp (expr) (case-closure expr env)]
       [lambda-sym-exp (vars bodies)
                       (closure vars bodies env)]
+      [set!-exp (var val) 
+                (set-ref! (apply-env-ref env 
+                                         var 
+                                         (lambda (box) box)
+                                         (lambda () (eopl:error 'set!-apply-env ; procedure to call if id not in env
+                                                     "variable not found in environment: ~s"
+                                                     var)))
+                          (eval-exp val env))]
+      [define-exp (var val)
+                  (let ([value (eval-exp val env)])
+                       (set! global-env (extend-env (list var) (list value) global-env)))]
       [app-exp (rator rands)
         (let ([proc-value (eval-exp rator env)]
               [args (eval-rands rands env)])
@@ -84,6 +95,7 @@
         (eval-exp (car bodies) env)
         (begin (eval-exp (car bodies) env)
                (eval-bodies (cdr bodies) env)))))
+
 
 ;  Apply a procedure to its arguments.
 ;  At this point, we only have primitive procedures.  
@@ -332,6 +344,10 @@
       ;**change code here.
       [case-lambda-exp (exprs)
                  (case-lambda-exp (map syntax-expand exprs))]
+      [set!-exp (var val)
+                (set!-exp var (syntax-expand val))]
+      [define-exp (var val)
+                (define-exp var (syntax-expand val))]
       )))  
 
 
