@@ -9,7 +9,7 @@
 
 ; eval-exp is the main component of the interpreter
 
-(define eval-exp
+(trace-define eval-exp
   (lambda (exp env)
     (cases expression exp
       [lit-exp (datum) datum]
@@ -61,14 +61,18 @@
       [case-lambda-exp (expr) (case-closure expr env)]
       [lambda-sym-exp (vars bodies)
                       (closure vars bodies env)]
+      ; [let*-exp (vars vals bodies)
+      ;           ()]
       [set!-exp (var val) 
-                (set-ref! (apply-env-ref env 
-                                         var 
-                                         (lambda (box) box)
-                                         (lambda () (eopl:error 'set!-apply-env ; procedure to call if id not in env
-                                                     "variable not found in environment: ~s"
-                                                     var)))
-                          (eval-exp val env))]
+                (let ([value (eval-exp val env)])
+                     (set-ref! (apply-env-ref env 
+                                              var 
+                                              (lambda (box) box)
+                                              (lambda () (apply-env-ref global-env 
+                                                            var 
+                                                            (lambda (box) box)
+                                                            (lambda () (eopl:error 'set!-apply-env "variable not found in environment: ~s" var)))))                                                  
+                              value))]
       [define-exp (var val)
                   (let ([value (eval-exp val env)])
                        (set! global-env (extend-env (list var) (list value) global-env)))]
@@ -89,7 +93,7 @@
   (lambda (rands env)
     (map (lambda (e) (eval-exp e env)) rands)))
 
-(define eval-bodies
+(trace-define eval-bodies
   (lambda (bodies env)
     (if (null? (cdr bodies))
         (eval-exp (car bodies) env)
@@ -162,6 +166,7 @@
     (cond [(null? bodies) #f]
           [(or (eval-exp (car bodies) env) 
                (number? (eval-exp (car bodies) env))) 
+           (display "here")
            (eval-exp (car bodies) env)]
           [else (eval-or-exp (cdr bodies) env)])))
 
@@ -227,6 +232,14 @@
      (empty-env)))
 
 (define global-env init-env)
+
+(define make-init-env
+  (lambda ()
+   (extend-env            
+     *prim-proc-names* 
+     (map prim-proc      
+          *prim-proc-names*)
+     (empty-env))))
 
 ; Usually an interpreter must define each 
 ; built-in procedure individually.  We are "cheating" a little bit.
@@ -348,7 +361,16 @@
                 (set!-exp var (syntax-expand val))]
       [define-exp (var val)
                 (define-exp var (syntax-expand val))]
+      [let*-exp (vars vals bodies) 
+                (let*-exp->let-exp vars vals bodies)]
       )))  
+
+(define let*-exp->let-exp
+  (lambda (vars vals bodies)
+    (if (null? (cdr vars))
+        (let-exp (list (car vars)) (list (car vals)) bodies)
+        (let-exp  (list (car vars)) (list (car vals))
+           (list (let*-exp->let-exp (cdr vars) (cdr vals) bodies))))))
 
 
 
@@ -357,8 +379,6 @@
 
 ; (define eval-one-exp
 ;   (lambda (x) (top-level-eval (parse-exp x))))
-
-
 
 
 

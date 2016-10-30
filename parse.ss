@@ -65,14 +65,10 @@
             (val expression?)]
   [define-exp (var symbol?)
               (val expression?)]
-  ; [let*-exp (vars (list-of symbol?))
-  ;           (val (list-of expression?))
-  ;           (bodies (list-of expression?))
-  ; ]
-	; [set!-exp 
-	; 	(var symbol?)
-	; 	(val expression?)
-	; ]
+  [let*-exp (vars (list-of symbol?))
+            (vals (list-of expression?))
+            (bodies (list-of expression?))
+  ]
   )
 
 (define letrec-idss?

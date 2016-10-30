@@ -57,8 +57,7 @@
                 (if (number? pos)
                     (succeed (list-ref vals pos))
                     (apply-env-ref env sym succeed fail)))]
-      [recursively-extended-env-record
-        (procnames idss bodiess old-env)
+      [recursively-extended-env-record (procnames idss bodiess old-env)
         (let ([pos (list-find-position sym procnames)])
               (if (number? pos)
                   (box (closure (list-ref idss pos)
@@ -70,5 +69,8 @@
 (define deref unbox) 
 
 (define set-ref! set-box!) 
+
+(define reset-global-env
+    (lambda () (set! global-env (make-init-env))))
 
 
